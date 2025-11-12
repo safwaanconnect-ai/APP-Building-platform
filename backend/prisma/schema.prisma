@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String  @id @default(cuid())
+  email             String  @unique
+  passwordHash      String  @map("password_hash")
+  name              String
+  subscriptionTier  String  @default("free") @map("subscription_tier")
+  stripeCustomerId  String? @map("stripe_customer_id")
+  emailVerified     Boolean @default(false) @map("email_verified")
+  lastLogin         DateTime? @map("last_login")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  applications Application[]
+
+  @@map("users")
+}
+
+model Application {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  name            String
+  slug            String   @unique
+  description     String?
+  status          String   @default("development") // development/staging/production
+  domain          String?
+  databaseUrl     String?  @map("database_url")
+  deploymentConfig Json?    @map("deployment_config")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  databaseSchemas DatabaseSchema[]
+  apiEndpoints   ApiEndpoint[]
+
+  @@map("applications")
+}
+
+model DatabaseSchema {
+  id               String   @id @default(cuid())
+  applicationId    String   @map("application_id")
+  schemaDefinition Json     @map("schema_definition")
+  version          Int      @default(1)
+  migrationStatus  String   @default("pending") @map("migration_status")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("database_schemas")
+}
+
+model ApiEndpoint {
+  id                    String   @id @default(cuid())
+  applicationId         String   @map("application_id")
+  path                  String
+  method                String
+  schema                Json
+  authenticationRequired Boolean @default(true) @map("authentication_required")
+  rateLimit             Int?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("api_endpoints")
+}
+
+model Deployment {
+  id            String   @id @default(cuid())
+  applicationId String   @map("application_id")
+  environment   String   // development/staging/production
+  status        String   // pending/running/failed
+  url           String?
+  logs          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("deployments")
+}
+
+model UsageMetrics {
+  id            String   @id @default(cuid())
+  applicationId String   @map("application_id")
+  metricType    String   // api_calls, storage, bandwidth
+  value         Int
+  timestamp     DateTime @default(now())
+
+  @@map("usage_metrics")
+}
