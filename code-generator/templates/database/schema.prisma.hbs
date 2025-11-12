@@ -1,0 +1,26 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+{{#each config.database.tables}}
+model {{pascalCase name}} {
+{{#each fields}}
+  {{name}} {{#eq ../name (kebabCase name)}}{{../name}}Id{{else}}{{name}}{{/eq}} {{#eq type 'string'}}String{{/eq}}{{#eq type 'text'}}String{{/eq}}{{#eq type 'number'}}Int{{/eq}}{{#eq type 'boolean'}}Boolean{{/eq}}{{#eq type 'date'}}DateTime{{/eq}}{{#eq type 'json'}}Json{{/eq}}{{#eq type 'email'}}String{{/eq}}{{#eq type 'url'}}String{{/eq}}{{#if required}} @map("{{kebabCase name}}"){{/if}}{{#if unique}} @unique{{/if}}{{#if defaultValue}} @default({{defaultValue}}){{/if}}
+{{/each}}
+
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("{{kebabCase name}}")
+}
+
+{{/each}}
